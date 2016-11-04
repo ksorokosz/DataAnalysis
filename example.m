@@ -61,4 +61,44 @@ for n = 1 : 24
 end
 csvwrite('correlation.csv', coeffs); 
 
+% create training set and testing set
+random = randperm(size(data,1));
+training_ids = random(1:size(data)*0.9);
+testing_ids = random(length(training_ids) + 1 : end);
 
+training_data = logdata(training_ids, :);
+testing_data  = logdata(testing_ids, :); % assuming that last column might be also a training/testing data (strange)
+
+% OLS (f, h)
+mrse_ols = zeros(1,24);
+mrse_eols = zeros(1,24);
+for i = 1 : 24
+
+	% add x(0) = 1 to the data to compute theta0 using normal equation
+	training = [ones(size(training_data,1),1) training_data(:,i)];
+	testing = [ones(size(testing_data,1),1) testing_data(:,i)];
+
+	[theta] = ols_training(training, training_data(:,168) );
+	y_p = testing*theta;
+	mrse_ols(i) = meansq(y_p ./ testing_data(:,168) - 1);
+end
+
+% Multiple input OLS (g, h)
+for i = 1 : 24
+	% add x(0) = 1 to the data to compute theta0 (minimizes derivation)
+	training = [ones(size(training_data,1),1) training_data(:,1:i)];
+	testing = [ones(size(testing_data,1),1) testing_data(:,1:i)];
+
+	[theta] = ols_training(training, training_data(:,168) );
+	y_p = testing*theta;
+	mrse_eols(i) = meansq(y_p ./ testing_data(:,168) - 1);
+end
+
+% plotting (i)
+figure(3);
+clf;
+plot(1:24, mrse_ols, 'r', 1:24, mrse_eols, 'b');
+ylabel 'mRSE'
+xlabel 'Reference time(n)'
+legend('Linear Regression', 'Multiple-input linear regression');
+print(gcf, 'evaluation.png', '-dpng');
