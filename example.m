@@ -21,25 +21,44 @@ for i = 1 : length(ids)
 end
 
 csvwrite('basic_statistics.csv', basic_statistics);
+sample = data(:, 168);
+logsample = log10(sample);
 
 % distribution (b, c)
-sample = data(:, 168);
-
-figure
-title 'data with positive skew'
+figure(1)
 subplot(2,1,1)
 hist(sample)   % positive skew
 title 'positive skew'
 subplot(2,1,2)
-hist(log10(sample)) % like normal distribution
+hist(logsample) % like normal distribution
 title 'quite normal ;)'
 print(gcf, 'distributions.png', '-dpng');
 
 % outliers (d)
+avg = mean(logsample);
+dev = std(logsample);
 
+not_outliers = and( logsample <= avg + 3*dev, logsample >= avg - 3*dev );
+figure(2)
+subplot(2,1,1)
+hist(log10(sample))
+title 'with outliers'
+subplot(2,1,2)
+hist(log10(sample(not_outliers)))
+title 'without outliers'
+print(gcf, 'outliers.png', '-dpng');
 
+% remove outliers from the data
+data = data(not_outliers, :);
+sample = sample(not_outliers);
+logdata = log10(data + eps); % data(:,1) contains zeros log(zeros) = -inf so I have add eps to the data 
+logsample = log10(sample);
 
-
-
+% pearson coefficient (e)
+coeffs = zeros(1,24);
+for n = 1 : 24
+	coeffs(n) = corrcoef(logdata(:,n), logsample);
+end
+csvwrite('correlation.csv', coeffs); 
 
 
